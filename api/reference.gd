@@ -1,7 +1,6 @@
 extends Node
 
 enum Trigger {
-	Invalid,
 	Left,
 	Right
 	}
@@ -16,14 +15,9 @@ enum InstructionType {
 	PlayerLEDNewRevision,
 	ResetToUserSettings
 	}
-
-class Instruction:
-	var type: InstructionType
-	var parameters: Array
 	
-	func _init(_type: InstructionType, _parameters: Array) -> void:
-		type = _type
-		parameters = _parameters
-
-class Packet:
-	var instructions: Instruction
+enum MicLED {
+	ON,
+	PULSE,
+	OFF
+}
