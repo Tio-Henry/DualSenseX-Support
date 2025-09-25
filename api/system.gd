@@ -5,42 +5,47 @@ var DSXServer: PacketPeerUDP = PacketPeerUDP.new()
 func _enter_tree() -> void:
 	DSXRef.process_thread_group = Node.PROCESS_THREAD_GROUP_SUB_THREAD
 	process_thread_group = Node.PROCESS_THREAD_GROUP_SUB_THREAD
-	connect_to("127.0.0.1",6971)
 
 func _exit_tree() -> void:
 	reset_settings(0)
-
-func _ready() -> void:
-	led(0, Color(0.733, 0.0, 0.537, 1.0),25)
-	mic_led(0, DSXRef.MicLED.ON)
-	print(get_dsx_info())
 
 func connect_to(ip: String, port: int) -> Error:
 	return DSXServer.connect_to_host(ip, port)
 
 func get_dsx_info() -> String:
-	send_data({"type":DSXRef.InstructionType.GetDSXStatus})
 	var data: String = ""
-	if DSXServer.is_socket_connected():
+	if not send_data({"type": DSXRef.InstructionType.GetDSXStatus}):
 		while data == "":
 			data = DSXServer.get_packet().get_string_from_ascii()
 		return data
 	else:
 		return ""
 
-func adaptive_trigger(device: int, trigger: DSXRef.Trigger, trigger_mode: DSXRef.TriggerMode) -> void:
-	send_data({"type":DSXRef.InstructionType.TriggerUpdate,"parameters":[device,trigger,trigger_mode,2,6,8]})
+func adaptive_trigger(device: int, trigger: DSXRef.Trigger, trigger_mode: DSXRef.TriggerMode, parameters: Array[int] = []) -> Error:
+	var instruction: Dictionary = {"type": DSXRef.InstructionType.TriggerUpdate, "parameters": [device,trigger,trigger_mode]}
+	if not parameters.is_empty():
+		instruction.parameters.append_array(parameters)
+	return send_data(instruction)
 	
-func led(device: int, color: Color, brightness: int) -> void:
-	send_data({"type":DSXRef.InstructionType.RGBUpdate,"parameters":[device, color.r8, color.g8, color.b8, brightness]})
+func lightbar_led(device: int, color: Color, brightness: int) -> Error:
+	return send_data({"type": DSXRef.InstructionType.RGBUpdate, "parameters": [device, color.r8, color.g8, color.b8, brightness]})
 
-func mic_led(device: int, state: DSXRef.MicLED) -> void:
-	send_data({"type":DSXRef.InstructionType.MicLED,"parameters":[device, state]})
+func player_led(device: int, player_number: int) -> Error:
+	if player_number < 6:
+		if player_number == 0:
+			return send_data({"type": DSXRef.InstructionType.PlayerLEDNewRevision, "parameters": [device, 5]})
+		else:
+			return send_data({"type": DSXRef.InstructionType.PlayerLEDNewRevision, "parameters": [device, player_number - 1]})
+	else:
+		return Error.ERR_INVALID_PARAMETER
+
+func mic_led(device: int, state: DSXRef.MicLED) -> Error:
+	return send_data({"type": DSXRef.InstructionType.MicLED, "parameters": [device, state]})
 	
-func send_data(instruction: Dictionary) -> void:
+func reset_settings(device: int) -> Error:
+	return send_data({"type": DSXRef.InstructionType.ResetToUserSettings,"parameters": [device]})
+
+func send_data(instruction: Dictionary) -> Error:
 	var json_result: JSON = JSON.new()
-	var data: String = json_result.stringify({"instructions":[instruction]})
-	DSXServer.put_packet(data.to_ascii_buffer())
-
-func reset_settings(device: int) -> void:
-	send_data({"type": DSXRef.InstructionType.ResetToUserSettings,"parameters": [device]})
+	var data: String = json_result.stringify({"instructions": [instruction]})
+	return DSXServer.put_packet(data.to_ascii_buffer())

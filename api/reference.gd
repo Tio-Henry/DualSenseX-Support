@@ -1,6 +1,7 @@
 extends Node
 
 enum Trigger {
+	Invalid,
 	Left,
 	Right
 	}
