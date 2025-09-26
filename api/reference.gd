@@ -1,3 +1,4 @@
+@icon("res://addons/dualsensex_support/logo.png")
 extends Node
 
 enum Trigger {
